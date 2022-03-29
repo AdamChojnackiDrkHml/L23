@@ -1,69 +1,104 @@
 package decoder
 
 import (
+	"fmt"
+	"l23/pkg/node"
 	"l23/pkg/reader"
 	"l23/pkg/writer"
 	"strconv"
-
-	"github.com/shopspring/decimal"
+	"strings"
 )
 
 type Decoder struct {
-	reader         *reader.Reader
-	writer         *writer.Writer
-	probsF         []decimal.Decimal
-	counterSymbols []int64
-	iterations     int
-	currentPatch   []byte
-	lastPatch      bool
-	tag            decimal.Decimal
-	size           int
+	reader       *reader.Reader
+	writer       *writer.Writer
+	huffTree     *node.Node
+	buffer       []byte
+	w            string
+	numOfSymbols int64
 }
 
 func Decoder_createDecoder(reader *reader.Reader, writer *writer.Writer) *Decoder {
-	decoder := &Decoder{reader: reader,
-		writer:         writer,
-		probsF:         make([]decimal.Decimal, 65),
-		counterSymbols: make([]int64, 64),
-		iterations:     0,
-		currentPatch:   make([]byte, 0),
-		lastPatch:      false}
+	decoder := &Decoder{
+		reader: reader,
+		writer: writer,
+		buffer: make([]byte, 0)}
 
-	for i := range decoder.probsF {
-		decoder.probsF[i] = decimal.NewFromInt(1).Div(decimal.NewFromInt(reader.PatchSize)).Mul(decimal.NewFromInt(int64(i + 1)))
-	}
-
-	decoder.probsF[len(decoder.probsF)-1] = decimal.NewFromInt(1)
 	return decoder
-}
-
-func (decoder *Decoder) calcProbs() {
-	currentPatch := decoder.currentPatch
-	iterations := decoder.iterations
-
-	for _, n := range currentPatch {
-		decoder.counterSymbols[n]++
-	}
-
-	allSymbolsCounter := int64(iterations)*int64(decoder.reader.PatchSize) + int64(decoder.reader.ReadSymbolsCounter)
-
-	decoder.probsF[0] = decimal.NewFromInt(decoder.counterSymbols[0]).Div(decimal.NewFromInt(allSymbolsCounter))
-
-	for i := 1; i < len(decoder.counterSymbols); i++ {
-		temp := decimal.NewFromInt(decoder.counterSymbols[i]).Div(decimal.NewFromInt(allSymbolsCounter))
-		decoder.probsF[i] = decoder.probsF[i-1].Add(temp)
-	}
-
-	decoder.iterations++
-}
-
-func (decoder *Decoder) getData() {
-	data := decoder.reader.Reader_readLine()
-	decoder.tag, _ = decimal.NewFromString(data[1])
-	decoder.size, _ = strconv.Atoi(data[0])
-	decoder.lastPatch = !decoder.reader.IsReading
 }
 
 func (decoder *Decoder) decode() {
 
+	bitsPointer := 0
+	myByte := decoder.reader.Reader_readByte()
+	bits := splitByteToBits(myByte)
+	for decoder.reader.IsReading && decoder.numOfSymbols > 0 {
+
+		currNode := decoder.huffTree
+
+		//search for sign
+		for currNode.IsInner {
+			if bits[bitsPointer] == "1" {
+				currNode = currNode.Right
+				bitsPointer++
+			} else if bits[bitsPointer] == "0" {
+				currNode = currNode.Left
+				bitsPointer++
+			}
+			if bitsPointer == 8 {
+				myByte = decoder.reader.Reader_readByte()
+				if !decoder.reader.IsReading {
+					break
+				}
+				bits = splitByteToBits(myByte)
+				bitsPointer = 0
+			}
+		}
+
+		decoder.addToBuffer(currNode.Name)
+		decoder.numOfSymbols--
+
+	}
+
+	decoder.w = string(decoder.buffer)
+	decoder.writeCode()
+	decoder.buffer = make([]byte, 0)
+}
+
+func (decoder *Decoder) addToBuffer(myByte byte) {
+	decoder.buffer = append(decoder.buffer, myByte)
+
+	if len(decoder.buffer) == 256 {
+		decoder.w = string(decoder.buffer)
+		decoder.writeCode()
+		decoder.buffer = make([]byte, 0)
+	}
+}
+
+func (decoder *Decoder) writeCode() {
+	decoder.writer.Writer_writeToFile(decoder.w)
+	decoder.w = ""
+}
+
+func (decoder *Decoder) getTree() {
+	decoder.huffTree = node.Node_verySadAndCoupledFunctionToRecreateTree(decoder.reader)
+}
+
+func splitByteToBits(aByte byte) []string {
+	return strings.Split(fmt.Sprintf("%08b", aByte), "")
+}
+
+func (decoder *Decoder) getNumOfSymbols() {
+
+	s := decoder.reader.Reader_getFirstWord()
+	if !decoder.reader.IsReading {
+		return
+	}
+	decoder.numOfSymbols, _ = strconv.ParseInt(s, 10, 64)
+}
+
+func (decoder *Decoder) Decoder_run() {
+	decoder.getNumOfSymbols()
+	decoder.getTree()
+	decoder.decode()
 }

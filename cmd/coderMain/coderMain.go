@@ -10,12 +10,20 @@ import (
 
 func main() {
 	fmt.Println(os.Getwd())
-	reader := reader.Reader_createReader("data/input/test")
-	writer := writer.Writer_createReader("data/output/test")
+	var readerA *reader.Reader
+	var writerA *writer.Writer
+	fmt.Println(os.Args)
+	if len(os.Args) != 3 {
+		readerA = reader.Reader_createReader("../data/input/test")
+		writerA = writer.Writer_createReader("../data/output/test")
+	} else {
+		readerA = reader.Reader_createReader(os.Args[1])
+		writerA = writer.Writer_createReader(os.Args[2])
+	}
 
-	coder := coder.Coder_createCoder(reader, writer)
+	coder := coder.Coder_createCoder(readerA, writerA)
 
 	coder.Coder_run()
 
-	writer.CloseFile()
+	writerA.CloseFile()
 }

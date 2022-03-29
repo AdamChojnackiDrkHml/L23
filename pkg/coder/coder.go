@@ -78,7 +78,9 @@ func (coder *Coder) calcProbs() {
 		probsss += coder.probs[i]
 	}
 	fmt.Println(probsss)
-
+	coder.w = strconv.Itoa(allSymbolsCounter) + " "
+	coder.writeCode()
+	coder.w = ""
 }
 
 func (coder *Coder) getData() {
@@ -171,10 +173,17 @@ func (coder *Coder) buildTree() {
 	for len(probsHeap) != 1 {
 		n1 := heap.Pop(&probsHeap).(*node.Node)
 		n2 := heap.Pop(&probsHeap).(*node.Node)
-
+		if n1.Probs == 0.25 {
+			fmt.Println("a")
+		}
+		if n2.Probs == 0.25 {
+			fmt.Println("b")
+		}
 		newNode := node.Node_joinNodes(n1, n2)
 
 		heap.Push(&probsHeap, newNode)
+		heap.Init(&probsHeap)
+
 	}
 	coder.huffTree = probsHeap[0]
 	coder.codeMap = node.Node_createCodes(coder.huffTree)

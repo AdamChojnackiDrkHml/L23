@@ -54,7 +54,6 @@ func (reader *Reader) Reader_readDataPatch() []byte {
 
 	reader.ReadSymbolsCounter = control
 	reader.Counter += control
-	fmt.Println(reader.Counter)
 	return currPatch[:control]
 }
 
@@ -64,10 +63,38 @@ func (reader *Reader) Reader_readLine() []string {
 	return strings.Split(reader.scanner.Text(), " ")
 }
 
+func (reader *Reader) Reader_readByte() byte {
+	oneByteSlice := make([]byte, 1)
+
+	_, err := reader.file.Read(oneByteSlice)
+
+	if err == io.EOF {
+		reader.closeFile()
+		reader.IsReading = false
+		return byte(0)
+	}
+
+	return oneByteSlice[0]
+}
+
 func (reader *Reader) closeFile() {
 	reader.file.Close()
 }
 
 func Reader_resetFile(reader **Reader) {
 	(*reader) = Reader_createReader((*reader).path)
+}
+
+func (reader *Reader) Reader_getFirstWord() string {
+	word := make([]byte, 0)
+	var char byte
+
+	for reader.IsReading {
+		char = reader.Reader_readByte()
+		if char == byte(' ') {
+			break
+		}
+		word = append(word, char)
+	}
+	return string(word)
 }
