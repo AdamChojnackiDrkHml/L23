@@ -14,7 +14,7 @@ type Decoder struct {
 	writer       *writer.Writer
 	huffTree     *node.Node
 	buffer       []byte
-	w            string
+	toWrite      string
 	numOfSymbols int64
 }
 
@@ -60,7 +60,7 @@ func (decoder *Decoder) decode() {
 
 	}
 
-	decoder.w = string(decoder.buffer)
+	decoder.toWrite = string(decoder.buffer)
 	decoder.writeCode()
 	decoder.buffer = make([]byte, 0)
 }
@@ -69,19 +69,19 @@ func (decoder *Decoder) addToBuffer(myByte byte) {
 	decoder.buffer = append(decoder.buffer, myByte)
 
 	if len(decoder.buffer) == 256 {
-		decoder.w = string(decoder.buffer)
+		decoder.toWrite = string(decoder.buffer)
 		decoder.writeCode()
 		decoder.buffer = make([]byte, 0)
 	}
 }
 
 func (decoder *Decoder) writeCode() {
-	decoder.writer.Writer_writeToFile(decoder.w)
-	decoder.w = ""
+	decoder.writer.Writer_writeToFile(decoder.toWrite)
+	decoder.toWrite = ""
 }
 
 func (decoder *Decoder) getTree() {
-	decoder.huffTree = node.Node_verySadAndCoupledFunctionToRecreateTree(decoder.reader)
+	decoder.huffTree = node.Node_recreateTree(decoder.reader)
 }
 
 func splitByteToBits(aByte byte) []string {

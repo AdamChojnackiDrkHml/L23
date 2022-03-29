@@ -1,6 +1,8 @@
 package node
 
-import "l23/pkg/reader"
+import (
+	"l23/pkg/reader"
+)
 
 type Node struct {
 	Left    *Node
@@ -60,7 +62,7 @@ func postOrderTraverse(node *Node) string {
 	if node.IsInner {
 		dictionary += "0"
 	} else {
-		dictionary += "1" + string(rune(node.Name))
+		dictionary += "1" + string([]byte{node.Name})
 	}
 
 	return dictionary
@@ -69,10 +71,10 @@ func postOrderTraverse(node *Node) string {
 func Node_toString(node *Node) string {
 
 	return postOrderTraverse(node) + "0"
-
 }
 
 func Node_createCodes(node *Node) map[byte]string {
+
 	ma := make(map[byte]string)
 
 	s := ""
@@ -98,7 +100,7 @@ func stepDown(node *Node, s string, ma *map[byte]string) {
 	}
 }
 
-func Node_verySadAndCoupledFunctionToRecreateTree(reader *reader.Reader) *Node {
+func Node_recreateTree(reader *reader.Reader) *Node {
 	stack := make([]*Node, 0)
 	for {
 		myByte := reader.Reader_readByte()

@@ -14,7 +14,7 @@ func main() {
 	var writerA *writer.Writer
 	fmt.Println(os.Args)
 	if len(os.Args) != 3 {
-		readerA = reader.Reader_createReader("../data/input/test")
+		readerA = reader.Reader_createReader("../data/input/testy1/test2.bin")
 		writerA = writer.Writer_createReader("../data/output/test")
 	} else {
 		readerA = reader.Reader_createReader(os.Args[1])
