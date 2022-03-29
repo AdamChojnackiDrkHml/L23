@@ -10,8 +10,8 @@ import (
 
 func main() {
 	fmt.Println(os.Getwd())
-	reader := reader.Reader_createReader("../data/input/test")
-	writer := writer.Writer_createReader("../data/output/test")
+	reader := reader.Reader_createReader("data/input/test")
+	writer := writer.Writer_createReader("data/output/test")
 
 	coder := coder.Coder_createCoder(reader, writer)
 

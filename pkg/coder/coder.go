@@ -6,6 +6,8 @@ import (
 	"l23/pkg/node"
 	"l23/pkg/reader"
 	"l23/pkg/writer"
+	"strconv"
+	"strings"
 )
 
 type Coder struct {
@@ -18,7 +20,7 @@ type Coder struct {
 	currentPatch   []byte
 	lastPatch      bool
 	w              string
-	buffer         []byte
+	buffer         []string
 	bytesBuffer    []byte
 }
 
@@ -29,7 +31,7 @@ func Coder_createCoder(reader *reader.Reader, writer *writer.Writer) *Coder {
 		counterSymbols: make([]int64, 256),
 		currentPatch:   make([]byte, 0),
 		lastPatch:      false,
-		buffer:         make([]byte, 0),
+		buffer:         make([]string, 0),
 		bytesBuffer:    make([]byte, 0)}
 
 	for i := range coder.counterSymbols {
@@ -102,18 +104,26 @@ func (coder *Coder) code() {
 		coder.getData()
 
 		for _, n := range coder.currentPatch {
-			coder.addToBuffer([]byte(coder.codeMap[n]))
+			coder.addToBuffer(strings.Split(coder.codeMap[n], ""))
 		}
 	}
+
+	if len(coder.buffer) != 0 {
+		padding := 8 - len(coder.buffer)
+
+		for ; padding > 0; padding-- {
+			coder.buffer = append(coder.buffer, "0")
+		}
+		coder.passToStringByteFromBufferBits()
+
+	}
+
 	coder.w = string(coder.bytesBuffer)
 	coder.writeCode()
 
-	if len(coder.buffer) != 0 {
-
-	}
 }
 
-func (coder *Coder) addToBuffer(bits []byte) {
+func (coder *Coder) addToBuffer(bits []string) {
 
 	for len(bits) > 0 {
 		howManyToAdd := 8 - len(coder.buffer)
@@ -135,7 +145,8 @@ func (coder *Coder) passToStringByteFromBufferBits() {
 
 	for _, n := range coder.buffer {
 		acc *= 2
-		acc += n
+		val, _ := strconv.Atoi(n)
+		acc += byte(val)
 	}
 
 	coder.bytesBuffer = append(coder.bytesBuffer, acc)
@@ -143,9 +154,9 @@ func (coder *Coder) passToStringByteFromBufferBits() {
 	if len(coder.bytesBuffer) == 256 {
 		coder.w = string(coder.bytesBuffer)
 		coder.writeCode()
+		coder.bytesBuffer = make([]byte, 0)
 	}
-
-	coder.bytesBuffer = make([]byte, 0)
+	coder.buffer = make([]string, 0)
 }
 
 func (coder *Coder) buildTree() {
@@ -168,7 +179,7 @@ func (coder *Coder) buildTree() {
 	coder.huffTree = probsHeap[0]
 	coder.codeMap = node.Node_createCodes(coder.huffTree)
 	coder.w = node.Node_toString(coder.huffTree)
-	coder.w += "XDAFSDFA"
+
 	coder.writeCode()
 	fmt.Println("DONE")
 }
